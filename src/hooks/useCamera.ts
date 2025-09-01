@@ -4,6 +4,11 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { WalkthroughFrame, CaptureSession } from '@/types/walkthrough';
 import { toast } from '@/hooks/use-toast';
 
+// Check if we're running in a Capacitor environment
+const isCapacitorAvailable = () => {
+  return typeof window !== 'undefined' && (window as any).Capacitor;
+};
+
 export function useCamera() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [currentSession, setCurrentSession] = useState<CaptureSession | null>(null);
@@ -30,22 +35,53 @@ export function useCamera() {
     if (!currentSession) return null;
     
     try {
-      // Haptic feedback
-      await Haptics.impact({ style: ImpactStyle.Medium });
+      // Haptic feedback (only if Capacitor is available)
+      if (isCapacitorAvailable()) {
+        await Haptics.impact({ style: ImpactStyle.Medium });
+      }
       
-      // Capture image
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false,
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Camera,
-        width: 1920,
-        height: 1080
-      });
+      let imageData: string;
+      
+      if (isCapacitorAvailable()) {
+        // Capture image using Capacitor Camera
+        const image = await Camera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.DataUrl,
+          source: CameraSource.Camera,
+          width: 1920,
+          height: 1080
+        });
+        imageData = image.dataUrl!;
+      } else {
+        // Browser fallback - generate a placeholder image
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 600;
+        const ctx = canvas.getContext('2d')!;
+        
+        // Create a gradient background
+        const gradient = ctx.createLinearGradient(0, 0, 800, 600);
+        gradient.addColorStop(0, '#1e293b');
+        gradient.addColorStop(1, '#0f172a');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 800, 600);
+        
+        // Add some text
+        ctx.fillStyle = '#00bcd4';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Frame ${currentSession.frames.length + 1}`, 400, 280);
+        ctx.fillStyle = '#64748b';
+        ctx.font = '16px Arial';
+        ctx.fillText(`Captured: ${new Date().toLocaleTimeString()}`, 400, 320);
+        
+        imageData = canvas.toDataURL();
+      }
 
       const frame: WalkthroughFrame = {
         id: `frame_${Date.now()}_${currentSession.frames.length}`,
-        imageData: image.dataUrl!,
+        imageData,
         timestamp: Date.now(),
         // TODO: Add device orientation and position data
       };
