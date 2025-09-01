@@ -109,7 +109,14 @@ export function useCamera() {
 
   const stopCaptureSession = useCallback(() => {
     if (currentSession) {
-      setCurrentSession(prev => prev ? { ...prev, isActive: false } : null);
+      const completedSession = { ...currentSession, isActive: false };
+      setCurrentSession(completedSession);
+      
+      // Store session data temporarily for the description phase
+      localStorage.setItem(`session_${completedSession.id}`, JSON.stringify(completedSession.frames));
+      
+      setIsCapturing(false);
+      return completedSession;
     }
     setIsCapturing(false);
     return currentSession;

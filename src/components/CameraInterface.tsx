@@ -79,8 +79,14 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
   };
 
   const handleStop = () => {
-    stopCaptureSession();
-    onClose();
+    const completedSession = stopCaptureSession();
+    if (completedSession && completedSession.frames.length > 0) {
+      // If we have captured frames, go to description input
+      onSessionComplete(completedSession.id);
+    } else {
+      // If no frames captured, just go back
+      onClose();
+    }
   };
 
   const currentStep = currentSession?.currentStep || 0;

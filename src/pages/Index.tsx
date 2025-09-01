@@ -27,28 +27,35 @@ const Index = () => {
   const handleDescriptionSave = (title: string, description: string) => {
     if (!pendingSessionId) return;
 
-    // Create the walkthrough session from the pending data
-    // In a real implementation, this would come from the camera hook's session data
-    const mockSession: WalkthroughSession = {
+    // Get the actual captured session from the camera hook
+    // For now, we'll need to store the session data when capture completes
+    // This is a temporary solution - in a real app, you'd have better state management
+    const capturedFrames = JSON.parse(localStorage.getItem(`session_${pendingSessionId}`) || '[]');
+    
+    const walkthroughSession: WalkthroughSession = {
       id: pendingSessionId,
       title,
       description,
-      frames: [], // This would be populated from the actual capture session
+      frames: capturedFrames,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       isUploaded: false,
       metadata: {
         deviceInfo: navigator.userAgent,
-        totalFrames: 0, // Would be actual count
-        duration: 0, // Would be actual duration
-        totalSize: 0 // Would be actual size
+        totalFrames: capturedFrames.length,
+        duration: capturedFrames.length > 0 ? (capturedFrames[capturedFrames.length - 1].timestamp - capturedFrames[0].timestamp) : 0,
+        totalSize: capturedFrames.reduce((total: number, frame: any) => total + (frame.imageData?.length || 0), 0)
       }
     };
 
-    addSession(mockSession);
+    addSession(walkthroughSession);
+    
+    // Clean up temporary session data
+    localStorage.removeItem(`session_${pendingSessionId}`);
+    
     toast({
       title: "Walkthrough Saved",
-      description: `"${title}" has been saved locally.`
+      description: `"${title}" has been saved with ${capturedFrames.length} frames.`
     });
 
     setPendingSessionId('');
@@ -96,11 +103,14 @@ const Index = () => {
   }
 
   if (currentView === 'description') {
+    // Get actual frame count from stored session data
+    const capturedFrames = JSON.parse(localStorage.getItem(`session_${pendingSessionId}`) || '[]');
+    
     return (
       <DescriptionInput
         onSave={handleDescriptionSave}
         onCancel={handleDescriptionCancel}
-        frameCount={10} // Mock frame count
+        frameCount={capturedFrames.length}
       />
     );
   }
