@@ -190,15 +190,45 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
           {/* Bottom Controls */}
           <div className="absolute bottom-0 left-0 right-0 p-6">
             {!isCapturing ? (
-              /* Start Capture */
-              <div className="text-center space-y-4">
-                <div className="glass-effect rounded-2xl p-6 mx-4">
-                  <h2 className="text-xl font-semibold gradient-text mb-2">
-                    Ready to Capture
+              /* Visual Demo Guide */
+              <div className="text-center space-y-6">
+                {/* Visual Guide */}
+                <div className="bg-card rounded-2xl p-6 mx-4 border border-border">
+                  <h2 className="text-xl font-semibold gradient-text mb-4">
+                    How to Capture
                   </h2>
-                  <p className="text-muted-foreground text-sm">
-                    Just point your camera and start moving slowly in a circle. 
-                    We'll automatically capture frames as you move!
+                  
+                  {/* Visual Steps */}
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto mb-2 bg-primary/20 rounded-full flex items-center justify-center">
+                        <Camera className="h-6 w-6 text-primary" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">1. Point Forward</p>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto mb-2 bg-primary/20 rounded-full flex items-center justify-center">
+                        <div className="relative">
+                          <Camera className="h-6 w-6 text-primary" />
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-pulse"></div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">2. Start Recording</p>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto mb-2 bg-primary/20 rounded-full flex items-center justify-center">
+                        <div className="animate-spin">
+                          <Camera className="h-6 w-6 text-primary" />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">3. Turn Slowly</p>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground">
+                    Turn slowly in a full circle. We'll capture automatically!
                   </p>
                 </div>
                 
@@ -214,7 +244,7 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
               /* Capturing Interface */
               <div className="space-y-4">
                 {/* Progress */}
-                <div className="glass-effect rounded-xl p-4 mx-4">
+                <div className="bg-card/80 rounded-xl p-4 mx-4 backdrop-blur-sm border border-border/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium">
                       Step {currentStep + 1} of {totalSteps}
@@ -224,9 +254,9 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
                     </span>
                   </div>
                   
-                  <div className="w-full bg-muted rounded-full h-2 mb-3">
+                  <div className="w-full bg-muted rounded-full h-3 mb-3">
                     <div 
-                      className="bg-primary h-2 rounded-full transition-all duration-300"
+                      className="bg-gradient-to-r from-primary to-primary-glow h-3 rounded-full transition-all duration-300"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
