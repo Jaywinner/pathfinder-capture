@@ -11,16 +11,16 @@ interface CameraInterfaceProps {
 }
 
 const GUIDANCE_STEPS = [
-  "Point camera straight ahead and capture the center view",
-  "Turn 30° to the right and capture",
-  "Continue turning right and capture 4 more frames",  
-  "Turn around to face the opposite direction",
-  "Capture the opposite center view",
-  "Turn 30° to the right and capture",
-  "Continue capturing while turning right",
-  "Nearly complete - capture 2 more frames",
-  "Almost done - one more frame",
-  "Perfect! Walkthrough capture complete"
+  "Point your camera straight ahead to begin",
+  "Slowly start moving your camera to the right", 
+  "Keep moving steadily in a circle",
+  "Continue moving at the same pace",
+  "Great! You're halfway around",
+  "Keep the steady movement going",
+  "Almost complete - keep moving",
+  "Perfect! Finishing up the capture",
+  "Excellent! Processing your walkthrough",
+  "Walkthrough capture complete!"
 ];
 
 export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceProps) {
@@ -28,7 +28,9 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
   const { isOnline } = useNetwork();
   const [isReady, setIsReady] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [autoCapturing, setAutoCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const captureIntervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     // Start camera stream for preview
@@ -63,13 +65,40 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
 
   const handleStartCapture = () => {
     startCaptureSession();
+    setAutoCapturing(true);
+    
+    // Start automatic capture every 2 seconds
+    captureIntervalRef.current = setInterval(async () => {
+      if (currentSession && currentSession.currentStep < currentSession.totalSteps) {
+        await handleAutoCaptureFrame();
+      }
+    }, 2000); // Capture every 2 seconds
+  };
+
+  const handleAutoCaptureFrame = async () => {
+    const frame = await captureFrame();
+    if (frame && currentSession && currentSession.currentStep >= currentSession.totalSteps) {
+      // Session complete - stop auto capture
+      setAutoCapturing(false);
+      if (captureIntervalRef.current) {
+        clearInterval(captureIntervalRef.current);
+      }
+      const completedSession = stopCaptureSession();
+      if (completedSession) {
+        onSessionComplete(completedSession.id);
+      }
+    }
   };
 
   const handleCaptureFrame = async () => {
+    // Manual capture option (keeping for compatibility)
     if (currentSession) {
       const frame = await captureFrame();
       if (frame && currentSession.currentStep >= currentSession.totalSteps) {
-        // Session complete
+        setAutoCapturing(false);
+        if (captureIntervalRef.current) {
+          clearInterval(captureIntervalRef.current);
+        }
         const completedSession = stopCaptureSession();
         if (completedSession) {
           onSessionComplete(completedSession.id);
@@ -79,6 +108,11 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
   };
 
   const handleStop = () => {
+    setAutoCapturing(false);
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+    }
+    
     const completedSession = stopCaptureSession();
     if (completedSession && completedSession.frames.length > 0) {
       // If we have captured frames, go to description input
@@ -88,6 +122,15 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
       onClose();
     }
   };
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (captureIntervalRef.current) {
+        clearInterval(captureIntervalRef.current);
+      }
+    };
+  }, []);
 
   const currentStep = currentSession?.currentStep || 0;
   const totalSteps = currentSession?.totalSteps || GUIDANCE_STEPS.length;
@@ -154,7 +197,8 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
                     Ready to Capture
                   </h2>
                   <p className="text-muted-foreground text-sm">
-                    Follow the guided steps to create your walkthrough
+                    Just point your camera and start moving slowly in a circle. 
+                    We'll automatically capture frames as you move!
                   </p>
                 </div>
                 
@@ -189,6 +233,11 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
                   
                   <p className="text-sm text-center text-foreground/80">
                     {guidanceText}
+                    {autoCapturing && (
+                      <span className="block text-primary text-xs mt-1">
+                        📷 Auto-capturing every 2 seconds...
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -199,15 +248,24 @@ export function CameraInterface({ onSessionComplete, onClose }: CameraInterfaceP
                     onClick={handleStop}
                     className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                   >
-                    Stop
+                    {autoCapturing ? 'Stop Auto-Capture' : 'Stop'}
                   </Button>
                   
-                  <Button
-                    onClick={handleCaptureFrame}
-                    className="capture-button w-16 h-16 rounded-full"
-                  >
-                    <Circle className="h-6 w-6" />
-                  </Button>
+                  {!autoCapturing && (
+                    <Button
+                      onClick={handleCaptureFrame}
+                      className="capture-button w-16 h-16 rounded-full"
+                    >
+                      <Circle className="h-6 w-6" />
+                    </Button>
+                  )}
+                  
+                  {autoCapturing && (
+                    <div className="flex items-center gap-2 text-primary text-sm">
+                      <div className="w-3 h-3 bg-primary rounded-full animate-pulse"></div>
+                      Recording...
+                    </div>
+                  )}
                   
                   <div className="w-12" /> {/* Spacer for centering */}
                 </div>
